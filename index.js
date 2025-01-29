@@ -5,7 +5,6 @@ const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
-
 app.use(cors());
 app.use(express.json());
 
@@ -28,6 +27,7 @@ async function run() {
     const equipCollection = client.db("equipmentstDB").collection('equipments');
     const testimonialCollection = client.db("equipmentstDB").collection('testimonials');
 
+  
     app.post('/addEquip', async (req, res) => {
       const newAddEquip = req.body;
       console.log(newAddEquip);
@@ -35,24 +35,21 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/equipment/home', async (req, res) => {
+      const equipment = await equipCollection.find().limit(6).toArray(); 
+      res.send(equipment);
+    });
 
-app.get('/equipment/home', async (req, res) => {
-  const equipment = await equipCollection.find().limit(6).toArray(); 
-  res.send(equipment);
-});
+    app.get('/equipment', async (req, res) => {
+      const equipment = await equipCollection.find().toArray(); 
+      res.send(equipment);
+    });
 
-app.get('/equipment', async (req, res) => {
-  const equipment = await equipCollection.find().toArray(); 
-  res.send(equipment);
-});
-
-   
     app.get('/equipment/top-rated', async (req, res) => {
       const topRated = await equipCollection.find().sort({ rating: -1 }).limit(6).toArray();
       res.send(topRated);
     });
 
-  
     app.get('/equipment/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -64,7 +61,43 @@ app.get('/equipment', async (req, res) => {
       }
     });
 
- 
+    app.get('/equipment/user/:email', async (req, res) => {
+      const email = req.params.email;
+      const equipment = await equipCollection.find({ userEmail: email }).toArray();
+      res.send(equipment);
+    });
+
+    app.put('/equipment/:id', async (req, res) => {
+      const id = req.params.id;
+      const updatedEquip = req.body;
+
+      delete updatedEquip._id;
+
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: updatedEquip,
+      };
+
+      try {
+        const result = await equipCollection.updateOne(query, updateDoc);
+        if (result.modifiedCount > 0) {
+          res.send({ message: 'Equipment updated successfully', updatedData: updatedEquip });
+        } else {
+          res.status(404).send({ message: 'Equipment not found' });
+        }
+      } catch (error) {
+        console.error("Error updating equipment:", error);
+        res.status(500).send({ message: 'Error updating equipment', error: error.message });
+      }
+    });
+
+    app.delete('/equipment/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await equipCollection.deleteOne(query);
+      res.send(result);
+    });
+
     app.get('/testimonials', async (req, res) => {
       const testimonials = await testimonialCollection.find().toArray();
       res.send(testimonials);
