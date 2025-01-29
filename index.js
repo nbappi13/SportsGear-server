@@ -5,7 +5,7 @@ const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Middleware use
+
 app.use(cors());
 app.use(express.json());
 
@@ -35,16 +35,24 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/equipment', async (req, res) => {
-      const equipment = await equipCollection.find().limit(6).toArray();
-      res.send(equipment);
-    });
 
+app.get('/equipment/home', async (req, res) => {
+  const equipment = await equipCollection.find().limit(6).toArray(); 
+  res.send(equipment);
+});
+
+app.get('/equipment', async (req, res) => {
+  const equipment = await equipCollection.find().toArray(); 
+  res.send(equipment);
+});
+
+   
     app.get('/equipment/top-rated', async (req, res) => {
       const topRated = await equipCollection.find().sort({ rating: -1 }).limit(6).toArray();
       res.send(topRated);
     });
 
+  
     app.get('/equipment/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -56,6 +64,7 @@ async function run() {
       }
     });
 
+ 
     app.get('/testimonials', async (req, res) => {
       const testimonials = await testimonialCollection.find().toArray();
       res.send(testimonials);
@@ -64,7 +73,6 @@ async function run() {
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
-   
     // await client.close();
   }
 }
