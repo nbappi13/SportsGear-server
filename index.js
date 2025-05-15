@@ -6,7 +6,17 @@ const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb")
 const app = express()
 const port = process.env.PORT || 5000
 
-app.use(cors())
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://b10-a10-task.web.app",
+      "https://sports-gear.netlify.app",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  })
+)
+
 app.use(express.json())
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0fter.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
@@ -268,16 +278,6 @@ app.delete("/special-deals/:id", async (req, res) => {
   }
 })
 
-app.get("/testimonials", async (req, res) => {
-  try {
-    const db = await getDB()
-    const testimonialCollection = db.collection("testimonials")
-    const testimonials = await testimonialCollection.find().toArray()
-    res.send(testimonials)
-  } catch (error) {
-    res.status(500).send({ message: "Error fetching testimonials", error: error.message })
-  }
-})
 
 app.get("/", (req, res) => {
   res.send("b10 server is running!")
