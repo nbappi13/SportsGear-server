@@ -6,25 +6,24 @@ const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb")
 const app = express()
 const port = process.env.PORT || 5000
 
+// Setup CORS for allowed origins
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://b10-a10-task.web.app",
-      "https://sports-gear.netlify.app",
-    ],
+    origin: ["http://localhost:5173", "https://b10-a10-task.web.app", "https://sports-gear.netlify.app"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  })
+  }),
 )
 
 app.use(express.json())
 
+// MongoDB connection string
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0fter.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
 console.log(uri)
 
 let client
 let clientPromise
 
+// Setup MongoDB connection - only connect once
 if (!global._mongoClientPromise) {
   client = new MongoClient(uri, {
     serverApi: {
@@ -38,11 +37,13 @@ if (!global._mongoClientPromise) {
 
 clientPromise = global._mongoClientPromise
 
+// Get database connection
 async function getDB() {
   const client = await clientPromise
   return client.db("equipmentstDB")
 }
 
+// Add new equipment
 app.post("/addEquip", async (req, res) => {
   try {
     const db = await getDB()
@@ -56,6 +57,7 @@ app.post("/addEquip", async (req, res) => {
   }
 })
 
+// Get equipment for home page (limited to 6)
 app.get("/equipment/home", async (req, res) => {
   try {
     const db = await getDB()
@@ -67,6 +69,7 @@ app.get("/equipment/home", async (req, res) => {
   }
 })
 
+// Get all equipment
 app.get("/equipment", async (req, res) => {
   try {
     const db = await getDB()
@@ -78,6 +81,7 @@ app.get("/equipment", async (req, res) => {
   }
 })
 
+// Get top rated equipment
 app.get("/equipment/top-rated", async (req, res) => {
   try {
     const db = await getDB()
@@ -92,31 +96,31 @@ app.get("/equipment/top-rated", async (req, res) => {
   }
 })
 
-
+// Get newest equipment
 app.get("/equipment/new-arrivals", async (req, res) => {
   try {
     const db = await getDB()
     const equipCollection = db.collection("equipments")
 
-   
+    // Check if collection exists
     const collectionExists = await db.listCollections({ name: "equipments" }).hasNext()
 
     if (!collectionExists) {
-     
+      // Return empty array if collection doesn't exist
       return res.json([])
     }
 
-  
+    // Get newest items by _id (newest first)
     const newArrivals = await equipCollection.find().sort({ _id: -1 }).limit(5).toArray()
-  
+
     res.json(newArrivals)
   } catch (error) {
-   
-  
+    // Return empty array on error
     res.json([])
   }
 })
 
+// Get equipment by ID
 app.get("/equipment/:id", async (req, res) => {
   try {
     const db = await getDB()
@@ -134,6 +138,7 @@ app.get("/equipment/:id", async (req, res) => {
   }
 })
 
+// Get equipment by user email
 app.get("/equipment/user/:email", async (req, res) => {
   try {
     const db = await getDB()
@@ -149,6 +154,7 @@ app.get("/equipment/user/:email", async (req, res) => {
   }
 })
 
+// Update equipment by ID
 app.put("/equipment/:id", async (req, res) => {
   try {
     const db = await getDB()
@@ -156,6 +162,7 @@ app.put("/equipment/:id", async (req, res) => {
     const id = req.params.id
     const updatedEquip = req.body
 
+    // Remove _id to avoid update errors
     delete updatedEquip._id
 
     const query = { _id: new ObjectId(id) }
@@ -176,6 +183,7 @@ app.put("/equipment/:id", async (req, res) => {
   }
 })
 
+// Delete equipment by ID
 app.delete("/equipment/:id", async (req, res) => {
   try {
     const db = await getDB()
@@ -189,10 +197,12 @@ app.delete("/equipment/:id", async (req, res) => {
   }
 })
 
+// Add special deal
 app.post("/special-deals", async (req, res) => {
   try {
     const db = await getDB()
 
+    // Create collection if it doesn't exist
     const collectionExists = await db.listCollections({ name: "specialDeals" }).hasNext()
     if (!collectionExists) {
       await db.createCollection("specialDeals")
@@ -210,10 +220,12 @@ app.post("/special-deals", async (req, res) => {
   }
 })
 
+// Get all special deals
 app.get("/special-deals", async (req, res) => {
   try {
     const db = await getDB()
 
+    // Check if collection exists
     const collectionExists = await db.listCollections({ name: "specialDeals" }).hasNext()
 
     if (collectionExists) {
@@ -226,6 +238,7 @@ app.get("/special-deals", async (req, res) => {
       }
     }
 
+    // If no deals found, create some from regular equipment
     const equipCollection = db.collection("equipments")
 
     const equipment = await equipCollection.aggregate([{ $sample: { size: 4 } }]).toArray()
@@ -248,6 +261,7 @@ app.get("/special-deals", async (req, res) => {
   }
 })
 
+// Get special deal by ID
 app.get("/special-deals/:id", async (req, res) => {
   try {
     const db = await getDB()
@@ -265,6 +279,7 @@ app.get("/special-deals/:id", async (req, res) => {
   }
 })
 
+// Delete special deal by ID
 app.delete("/special-deals/:id", async (req, res) => {
   try {
     const db = await getDB()
@@ -278,11 +293,12 @@ app.delete("/special-deals/:id", async (req, res) => {
   }
 })
 
-
+// Root route
 app.get("/", (req, res) => {
   res.send("b10 server is running!")
 })
 
+// Start server
 app.listen(port, () => {
   console.log(`b10 server is running on port: ${port}`)
 })
